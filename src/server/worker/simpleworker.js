@@ -9,6 +9,9 @@
 
 var WEBGME = require(__dirname + '/../../../webgme'),
 
+    cas = require('ssl-root-cas/latest'),
+    superagent = require('superagent'),
+
     CONSTANT = require('./constants'),
     Logger = require('../logger'),
     WorkerRequests = require('./workerrequests'),
@@ -46,8 +49,18 @@ function initialize(parameters) {
         gmeConfig = parameters.gmeConfig;
         WEBGME.addToRequireJsPaths(gmeConfig);
         logger = Logger.create('gme:server:worker:simpleworker:pid_' + process.pid, gmeConfig.server.log, true);
-        logger.debug('initializing');
+
         logger.info('initialized worker');
+        if (gmeConfig.server.https.enable === true) {
+            logger.info('Https is enabled, adding trusted CAs:');
+            logger.info(gmeConfig.server.https.certificateFile);
+            logger.info(gmeConfig.server.https.keyFile);
+
+            cas.inject();
+            cas.addFile(gmeConfig.server.https.certificateFile);
+            cas.addFile(gmeConfig.server.https.keyFile);
+            superagent.Request.prototype._ca = (require('https').globalAgent.options.ca);
+        }
         wr = new WorkerRequests(logger, gmeConfig);
         safeSend({pid: process.pid, type: CONSTANT.msgTypes.initialized});
     } else {

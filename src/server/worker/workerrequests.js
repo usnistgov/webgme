@@ -20,7 +20,7 @@ var Core = requireJS('common/core/core'),
 
 
 function WorkerRequests(mainLogger, gmeConfig) {
-    var logger = mainLogger.fork('WorkerFunctions');
+    var logger = mainLogger.fork('WorkerRequests');
 
     function getConnectedStorage(webGMESessionId) {
         var host = '127.0.0.1', //TODO: this should come from gmeConfig
@@ -248,7 +248,7 @@ function WorkerRequests(mainLogger, gmeConfig) {
             finish = function (err, result) {
                 if (err) {
                     err = err instanceof Error ? err : new Error(err);
-                    logger.error('plugin [' + pluginName + '] failed with error', {metadata: err});
+                    logger.error('plugin [' + pluginName + '] failed with error', err);
                     if (!result) {
                         result = pluginManager.getPluginErrorResult(pluginName, err.message);
                     }
