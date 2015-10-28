@@ -7,7 +7,7 @@
 
 var testFixture = require('../../../_globals.js');
 
-describe.only('DynamoAdapter', function () {
+describe.skip('DynamoAdapter', function () {
     var DynamoAdapter = require('../../../../src/server/storage/datastores/dynamoadapter'),
         expect = testFixture.expect,
         Q = testFixture.Q,
