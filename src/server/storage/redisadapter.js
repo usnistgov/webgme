@@ -22,6 +22,11 @@ var redis = require('redis'),
 // guest+test:branches = hashMap(branchName, branchHash)
 // guest+test:commits = hashMap(objectHash, timestamp)
 
+/**
+ * @param mainLogger
+ * @param gmeConfig
+ * @constructor
+ */
 function RedisAdapter(mainLogger, gmeConfig) {
     var self = this,
         connectionCnt = 0,
@@ -30,6 +35,7 @@ function RedisAdapter(mainLogger, gmeConfig) {
         logger = mainLogger.fork('redisAdapter');
 
     this.client = null;
+
     /**
      * Provides methods related to a specific project.
      *
@@ -235,6 +241,7 @@ function RedisAdapter(mainLogger, gmeConfig) {
     }
 
     function openDatabase(callback) {
+        var client;
         connectionCnt += 1;
         logger.debug('openDatabase, connection counter:', connectionCnt);
 
@@ -242,11 +249,14 @@ function RedisAdapter(mainLogger, gmeConfig) {
             if (self.client === null) {
                 logger.debug('Connecting to redis...');
                 connectDeferred = Q.defer();
-                self.client = redis.createClient(gmeConfig.storage.database.options);
-                self.client.on('error', function (err) {
+                client = redis.createClient(gmeConfig.storage.database.options);
+                client.on('error', function (err) {
+                    self.client = null;
                     logger.error('Redis client: ', err);
                 });
-                self.client.on('ready', function () {
+                client.on('ready', function () {
+                    self.client = client;
+                    disconnectDeferred = null;
                     logger.debug('Connected.');
                     connectDeferred.resolve();
                 });

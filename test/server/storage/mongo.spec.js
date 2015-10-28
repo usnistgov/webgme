@@ -952,13 +952,10 @@ describe('Mongo storage', function () {
                     done(new Error('should have failed to insertObject'));
                 })
                 .catch(function (err) {
-                    if (err && err.code === 11000) {
-                        // TODO: check error message
-                        done();
-                    } else {
-                        done(new Error('should have failed to insertObject'));
-                    }
-                });
+                    expect(err.message).to.contain('tried to insert existing hash - the two objects were NOT equal');
+                    done();
+                })
+                .done();
         });
 
         it('should getBranchHash', function (done) {
