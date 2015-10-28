@@ -5,14 +5,14 @@
  */
 'use strict';
 
-var testFixture = require('../../_globals.js');
+var testFixture = require('../../../_globals.js');
 
 describe('MemoryAdapter', function () {
-    var MemoryAdapter = require('../../../src/server/storage/memory'),
+    var MemoryAdapter = require('../../../../src/server/storage/memory'),
         expect = testFixture.expect,
         Q = testFixture.Q,
         gmeConfig = testFixture.getGmeConfig(),
-        adapterTests = require('./adapters/testgenerators'),
+        adapterTests = require('./testgenerators'),
         logger = testFixture.logger.fork('MemoryAdapter');
 
     describe('open/close Database', function () {

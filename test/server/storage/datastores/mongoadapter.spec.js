@@ -5,14 +5,14 @@
  */
 'use strict';
 
-var testFixture = require('../../_globals.js');
+var testFixture = require('../../../_globals.js');
 
 describe('MongoAdapter', function () {
-    var MongoAdapter = require('../../../src/server/storage/mongo'),
+    var MongoAdapter = require('../../../../src/server/storage/mongo'),
         expect = testFixture.expect,
         Q = testFixture.Q,
         gmeConfig = testFixture.getGmeConfig(),
-        adapterTests = require('./adapters/testgenerators'),
+        adapterTests = require('./testgenerators'),
         logger = testFixture.logger.fork('MongoAdapter');
 
     describe('open/close Database', function () {

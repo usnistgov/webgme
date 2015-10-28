@@ -22,7 +22,7 @@ config.plugin.basePaths.push(path.join(__dirname, '../test/plugin/scenarios/plug
 config.plugin.allowServerExecution = true;
 config.storage.emitCommittedCoreObjects = false;
 config.storage.database.options = {
-    //port: 6666
+    port: 6666
 };
 
 config.server.log = {

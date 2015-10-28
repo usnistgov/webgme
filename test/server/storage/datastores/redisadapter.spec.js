@@ -5,18 +5,17 @@
  */
 'use strict';
 
-var testFixture = require('../../_globals.js');
+var testFixture = require('../../../_globals.js');
 
 describe('RedisAdapter', function () {
-    var RedisAdapter = require('../../../src/server/storage/redisadapter'),
+    var RedisAdapter = require('../../../../src/server/storage/datastores/redisadapter'),
         expect = testFixture.expect,
         Q = testFixture.Q,
         gmeConfig = testFixture.getGmeConfig(),
-        adapterTests = require('./adapters/testgenerators'),
+        adapterTests = require('./testgenerators'),
         logger = testFixture.logger.fork('RedisAdapter');
 
     describe('open/close Database', function () {
-
         adapterTests.genOpenCloseDatabase(RedisAdapter, logger, gmeConfig, Q, expect);
     });
 
