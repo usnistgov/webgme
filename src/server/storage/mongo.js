@@ -391,9 +391,9 @@ function Mongo(mainLogger, gmeConfig) {
                 })
                 .catch(function (err) {
                     err = err instanceof Error ? err : new Error(err);
-                    if (err.message === 'target namespace exists') {
+                    if (err.message.indexOf('target namespace exists') > -1) {
                         deferred.reject(new Error('Project already exists ' + newProjectId));
-                    } else if (err.message === 'source namespace does not exist') {
+                    } else if (err.message.indexOf('source namespace does not exist') > -1) {
                         deferred.reject(new Error('Project does not exist ' + projectId));
                     } else {
                         deferred.reject(err);
