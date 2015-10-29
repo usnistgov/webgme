@@ -390,13 +390,15 @@ function Mongo(mainLogger, gmeConfig) {
                     deferred.resolve();
                 })
                 .catch(function (err) {
+                    err = err instanceof Error ? err : new Error(err);
                     if (err.message === 'target namespace exists') {
                         deferred.reject(new Error('Project already exists ' + newProjectId));
                     } else if (err.message === 'source namespace does not exist') {
                         deferred.reject(new Error('Project does not exist ' + projectId));
+                    } else {
+                        deferred.reject(err);
                     }
-                })
-                .done();
+                });
         } else {
             deferred.reject(new Error('Database is not open.'));
         }
