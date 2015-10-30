@@ -499,20 +499,27 @@ function genInsertLoadAndCommits(databaseAdapter, Q, expect) {
     });
 
     it('should fail to insert same hash with different object', function (done) {
+        var project;
         databaseAdapter.createProject('project4')
-            .then(function (project) {
-                return Q.allDone([
-                    project.insertObject({a: 1, b: 2, _id: '#ab12'}),
-                    project.insertObject({a: 2, b: 2, _id: '#ab12'})
-                ]);
+            .then(function (project_) {
+                project = project_;
+                return project.insertObject({a: 1, b: 2, _id: '#ab12'});
+            })
+            .then(function () {
+                project.insertObject({a: 2, b: 2, _id: '#ab12'});
             })
             .then(function () {
                 throw new Error('should have failed!');
             })
             .catch(function (err) {
                 expect(err.message).to.contain('tried to insert existing hash - the two objects were NOT equal');
+                project.loadObject('#ab12')
+                    .then(function (obj) {
+                        expect(obj).to.deep.equal({a: 1, b: 2, _id: '#ab12'});
+                    })
+                    .nodeify(done);
             })
-            .nodeify(done);
+            .done();
     });
 
     it('should insert same hash with different object in two projects', function (done) {
@@ -712,6 +719,22 @@ function genInsertLoadAndCommits(databaseAdapter, Q, expect) {
  */
 function genBranchOperations(databaseAdapter, Q, expect) {
 
+    it('should create branch with setBranchHash when oldHash is empty and getBranchHash and getHash', function (done) {
+        var project;
+        databaseAdapter.createProject('project0')
+            .then(function (project_) {
+                project = project_;
+                return project.setBranchHash('master', '', '#newHash');
+            })
+            .then(function () {
+                return project.getBranchHash('master');
+            })
+            .then(function (hash) {
+                expect(hash).to.equal('#newHash');
+            })
+            .nodeify(done);
+    });
+
     it('getBranches should get empty object when no branches inserted', function (done) {
         databaseAdapter.createProject('project1')
             .then(function (project) {
@@ -763,7 +786,7 @@ function genBranchOperations(databaseAdapter, Q, expect) {
         databaseAdapter.createProject('project4')
             .then(function (project_) {
                 project = project_;
-                return project.setBranchHash('master', '', '#newHash');
+                return project.setBranchHash('master', '', '#startHash');
             })
             .then(function () {
                 return project.setBranchHash('master', '', '#someOther');
@@ -773,8 +796,13 @@ function genBranchOperations(databaseAdapter, Q, expect) {
             })
             .catch(function (err) {
                 expect(err.message).to.contain('branch hash mismatch');
+                project.getBranchHash('master')
+                    .then(function (hash) {
+                        expect(hash).to.equal('#startHash');
+                    })
+                    .nodeify(done);
             })
-            .nodeify(done);
+            .done();
     });
 
     it('should getBranchHash for existing branch', function (done) {
@@ -881,21 +909,21 @@ function genBranchOperations(databaseAdapter, Q, expect) {
         databaseAdapter.createProject('project11')
             .then(function (project_) {
                 project = project_;
-                return project.setBranchHash('master', '', '#newHash');
+                return project.setBranchHash('master', '', '#startHash');
             })
             .then(function () {
-                return project.setBranchHash('master', '#newHash', '#someNew');
+                return project.setBranchHash('master', '#startHash', '#newHash');
             })
             .then(function () {
                 return project.getBranchHash('master');
             })
-            .catch(function (branchHash) {
-                expect(branchHash).to.equal('#someNew');
+            .then(function (branchHash) {
+                expect(branchHash).to.equal('#startHash');
             })
             .nodeify(done);
     });
 
-    it('should return branch hash mismatch when passing same hash and it does not match', function (done) {
+    it('should return branch hash mismatch when passing a hash and it does not match', function (done) {
         var project;
         databaseAdapter.createProject('project12')
             .then(function (project_) {
@@ -958,12 +986,93 @@ function genBranchOperations(databaseAdapter, Q, expect) {
             .nodeify(done);
     });
 
-    it('should should succeed in deleting branch that did not exist', function (done) {
+    it('should succeed in deleting branch that did not exist', function (done) {
         databaseAdapter.createProject('project14')
             .then(function (project) {
                 return project.setBranchHash('doesNotExist', '', '');
             })
             .nodeify(done);
+    });
+
+    it('should succeed in deleting branch that did not exist provided a hash', function (done) {
+        databaseAdapter.createProject('project15')
+            .then(function (project) {
+                return project.setBranchHash('doesNotExist', '#someHash', '');
+            })
+            .nodeify(done);
+    });
+
+    it('should fail to delete when hash mismatch', function (done) {
+        var project;
+        databaseAdapter.createProject('project16')
+            .then(function (project_) {
+                project = project_;
+                return project.setBranchHash('master', '', '#startHash');
+            })
+            .then(function () {
+                return project.getBranchHash('master');
+            })
+            .then(function (startHash) {
+                expect(startHash).to.equal('#startHash');
+                return project.setBranchHash('master', '#someOtherHash', '');
+            })
+            .then(function () {
+                throw new Error('Should have failed!');
+            })
+            .catch(function (err) {
+                expect(err.message).to.contain('branch hash mismatch');
+                project.getBranchHash('master')
+                    .then(function (hash) {
+                        expect(hash).to.equal('#startHash');
+                    })
+                    .nodeify(done);
+            })
+            .done();
+    });
+
+    it('should fail to update when hash mismatch', function (done) {
+        var project;
+        databaseAdapter.createProject('project17')
+            .then(function (project_) {
+                project = project_;
+                return project.setBranchHash('master', '', '#startHash');
+            })
+            .then(function () {
+                return project.setBranchHash('master', '#someOtherHash', '#shouldNotBeSet');
+            })
+            .then(function () {
+                throw new Error('Should have failed!');
+            })
+            .catch(function (err) {
+                expect(err.message).to.contain('branch hash mismatch');
+                project.getBranchHash('master')
+                    .then(function (hash) {
+                        expect(hash).to.equal('#startHash');
+                    })
+                    .nodeify(done);
+            })
+            .done();
+    });
+
+    it('should fail to update if it does not exist', function (done) {
+        var project;
+        databaseAdapter.createProject('project18')
+            .then(function (project_) {
+                project = project_;
+                return project.setBranchHash('master', '#someOtherHash', '#shouldNotBeSet');
+            })
+            .then(function () {
+                throw new Error('Should have failed!');
+            })
+            .catch(function (err) {
+                expect(err.message).to.contain('branch hash mismatch');
+                project.getBranchHash('master')
+                    .then(function (hash) {
+                        expect(hash).to.equal('');
+                    })
+                    .nodeify(done);
+            })
+            .done();
     });
 }
 

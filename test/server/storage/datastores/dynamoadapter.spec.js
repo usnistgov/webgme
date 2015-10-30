@@ -75,21 +75,25 @@ describe.skip('DynamoAdapter', function () {
         adapterTests.genInsertLoadAndCommits(dynamoAdapter, Q, expect);
     });
 
-    describe.skip('Project: branch operations', function () {
-        var redisAdapter = new DynamoAdapter(logger, gmeConfig);
+    describe('Project: branch operations', function () {
+        var dynamoAdapter = new DynamoAdapter(logger, gmeConfig);
 
         before(function (done) {
-            redisAdapter.openDatabase()
+            Q.ninvoke(dynaliteServer, 'listen', 4567)
                 .then(function () {
-                    return Q.ninvoke(redisAdapter.client, 'flushdb');
+                    return dynamoAdapter.openDatabase();
                 })
                 .nodeify(done);
         });
 
         after(function (done) {
-            redisAdapter.closeDatabase(done);
+            Q.ninvoke(dynaliteServer, 'close')
+                .then(function () {
+                    return dynamoAdapter.closeDatabase();
+                })
+                .nodeify(done);
         });
 
-        adapterTests.genBranchOperations(redisAdapter, Q, expect);
+        adapterTests.genBranchOperations(dynamoAdapter, Q, expect);
     });
 });

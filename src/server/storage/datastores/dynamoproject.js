@@ -81,7 +81,7 @@ function DynamoProject(projectId, adapter) {
                         S: JSON.stringify(object)
                     }
                 },
-                ConditionExpression: 'attribute_not_exists(ID)',
+                ConditionExpression: 'attribute_not_exists (ID)',
                 ReturnValues: 'ALL_OLD'
             };
 
@@ -128,72 +128,187 @@ function DynamoProject(projectId, adapter) {
     };
 
     this.getBranches = function (callback) {
-        return Q.ninvoke(adapter.client, 'hgetall', projectId + adapter.CONSTANTS.BRANCHES)
-            .then(function (result) {
-                return result || {};
-            })
-            .nodeify(callback);
+        var deferred = Q.defer(),
+            params = {
+                TableName: rawProjectId,
+                KeyConditionExpression: 'ID = master',
+                ExpressionAttributeValues: {
+                    ':hashTag': {
+                        S: 'master'
+                    }
+                },
+                ConsistentRead: true
+            };
+
+        adapter.client.query(params, function (err, result) {
+            if (err) {
+                deferred.reject(err);
+                return;
+            }
+            console.log(result);
+            deferred.reject(new Error('Not implemented'));
+        });
+
+        return deferred.promise.nodeify(callback);
     };
 
     this.getBranchHash = function (branch, callback) {
-        return Q.ninvoke(adapter.client, 'hget', projectId + adapter.CONSTANTS.BRANCHES, branch)
-            .then(function (branchHash) {
-                return branchHash || '';
-            }).nodeify(callback);
+        var deferred = Q.defer(),
+            params = {
+                TableName: rawProjectId,
+                Key: {
+                    ID: {
+                        S: branch
+                    }
+                },
+                ConsistentRead: true
+            };
+        adapter.client.getItem(params, function (err, result) {
+            if (err) {
+                deferred.reject(err);
+                return;
+            }
+            console.log('getBranchHash', result);
+            if (result.Item && result.Item.hash && result.Item.hash.S) {
+                deferred.resolve(result.Item.hash.S);
+            } else {
+                deferred.resolve('');
+            }
+        });
+
+        return deferred.promise.nodeify(callback);
     };
 
     this.setBranchHash = function (branch, oldhash, newhash, callback) {
         var deferred = Q.defer(),
-            branchesHashMap = projectId + adapter.CONSTANTS.BRANCHES;
+            params;
 
         if (oldhash === newhash) {
-            Q.ninvoke(adapter.client, 'hget', branchesHashMap, branch)
-                .then(function (branchHash) {
-                    branchHash = branchHash || '';
-                    if (branchHash === oldhash) {
-                        deferred.resolve();
-                    } else {
-                        deferred.reject(new Error('branch hash mismatch'));
+            params = {
+                TableName: rawProjectId,
+                Key: {
+                    ID: {
+                        S: branch
                     }
-                })
-                .catch(deferred.reject);
+                },
+                ConsistentRead: true
+            };
+            // Check that the current hash is correct (ever used?)
+            adapter.client.getItem(params, function (err, result) {
+                var currentHash = '';
+                if (err) {
+                    deferred.reject(err);
+                    return;
+                }
+
+                if (result.Item && result.Item.hash && result.Item.hash.S) {
+                    currentHash = result.Item && result.Item.hash && result.Item.hash.S;
+                }
+                if (oldhash === currentHash) {
+                    deferred.resolve();
+                } else {
+                    deferred.reject(new Error('branch hash mismatch'));
+                }
+            });
         } else if (newhash === '') {
-            Q.ninvoke(adapter.client, 'hget', branchesHashMap, branch)
-                .then(function (branchHash) {
-                    if (branchHash === oldhash) {
-                        Q.ninvoke(adapter.client, 'hdel', branchesHashMap, branch)
-                            .then(deferred.resolve);
-                    } else {
-                        deferred.reject(new Error('branch hash mismatch'));
+            // Delete branch
+            params = {
+                TableName: rawProjectId,
+                Key: {
+                    ID: {
+                        S: branch
                     }
-                })
-                .catch(deferred.reject);
-        } else if (oldhash === '') {
-            Q.ninvoke(adapter.client, 'hsetnx', branchesHashMap, branch, newhash)
-                .then(function (result) {
-                    // 1 if field is a new field in the hash and value was set.
-                    // 0 if field already exists in the hash and no operation was performed.
-                    if (result === 1) {
+                },
+                ExpressionAttributeValues: {
+                    ':oldhash': {
+                        S: oldhash
+                    }
+                },
+                ConditionExpression: 'hash = :oldhash',
+                ReturnValues: 'ALL_OLD'
+            };
+
+            adapter.client.deleteItem(params, function (err, result) {
+                if (err) {
+                    deferred.reject(err);
+                    return;
+                }
+                console.log('delete:', params, result);
+                if (result.Attributes && result.Attributes.hash && result.Attributes.hash.S) {
+                    if (result.Attributes.hash.S === oldhash) {
                         deferred.resolve();
                     } else {
                         deferred.reject(new Error('branch hash mismatch'));
                     }
-                })
-                .catch(deferred.reject);
+                } else {
+                    deferred.resolve();
+                }
+            });
+        } else if (oldhash === '') {
+            // Create branch
+            params = {
+                TableName: rawProjectId,
+                Item: {
+                    ID: {
+                        S: branch
+                    },
+                    hash: {
+                        S: newhash
+                    }
+                },
+                ConditionExpression: 'attribute_not_exists(ID)',
+                ReturnValues: 'ALL_OLD'
+            };
+
+            adapter.client.putItem(params, function (err, result) {
+                if (err) {
+                    deferred.reject(err);
+                    return;
+                }
+                console.log('create:', result);
+                if (result.Attributes && result.Attributes.hash && result.Attributes.hash.S) {
+                    deferred.reject(new Error('branch hash mismatch'));
+                } else {
+                    deferred.resolve();
+                }
+            });
         } else {
-            Q.ninvoke(adapter.client, 'hget', branchesHashMap, branch)
-                .then(function (branchHash) {
-                    if (branchHash === oldhash) {
-                        Q.ninvoke(adapter.client, 'hset', branchesHashMap, branch, newhash)
-                            .then(function () {
-                                deferred.resolve();
-                            })
-                            .catch(deferred.reject);
+            // Update branch
+            params = {
+                TableName: rawProjectId,
+                Key: {
+                    ID: {
+                        S: branch
+                    }
+                },
+                ExpressionAttributeValues: {
+                    ':newhash': {
+                        S: newhash
+                    },
+                    ':oldhash': {
+                        S: oldhash
+                    }
+                },
+                ConditionExpression: 'hash = :oldhash',
+                UpdateExpression: 'set hash = :newhash',
+                ReturnValues: 'ALL_NEW'
+            };
+            adapter.client.updateItem(params, function (err, result) {
+                if (err) {
+                    deferred.reject(err);
+                    return;
+                }
+                console.log('update:', result);
+                if (result.Attributes && result.Attributes.hash && result.Attributes.hash.S) {
+                    if (result.Attributes.hash.S === oldhash) {
+                        deferred.resolve();
                     } else {
                         deferred.reject(new Error('branch hash mismatch'));
                     }
-                })
-                .catch(deferred.reject);
+                } else {
+                    deferred.reject(new Error('branch hash mismatch'));
+                }
+            });
         }
 
         return deferred.promise.nodeify(callback);
