@@ -15,7 +15,7 @@ describe.skip('DynamoAdapter', function () {
         adapterTests = require('./testgenerators'),
         logger = testFixture.logger.fork('DynamoAdapter'),
         dynalite = require('dynalite'),
-        dynaliteServer = dynalite({createTableMs: 50});
+        dynaliteServer = dynalite({createTableMs: 1});
 
     describe('open/close Database', function () {
         before(function (done) {
@@ -53,22 +53,26 @@ describe.skip('DynamoAdapter', function () {
         adapterTests.genDatabaseClosedErrors(new DynamoAdapter(logger, gmeConfig), Q, expect);
     });
 
-    describe.skip('Project: insert/load Object and getCommits', function () {
-        var redisAdapter = new DynamoAdapter(logger, gmeConfig);
+    describe('Project: insert/load Object and getCommits', function () {
+        var dynamoAdapter = new DynamoAdapter(logger, gmeConfig);
 
         before(function (done) {
-            redisAdapter.openDatabase()
+            Q.ninvoke(dynaliteServer, 'listen', 4567)
                 .then(function () {
-                    return Q.ninvoke(redisAdapter.client, 'flushdb');
+                    return dynamoAdapter.openDatabase();
                 })
                 .nodeify(done);
         });
 
         after(function (done) {
-            redisAdapter.closeDatabase(done);
+            Q.ninvoke(dynaliteServer, 'close')
+                .then(function () {
+                    return dynamoAdapter.closeDatabase();
+                })
+                .nodeify(done);
         });
 
-        adapterTests.genInsertLoadAndCommits(redisAdapter, Q, expect);
+        adapterTests.genInsertLoadAndCommits(dynamoAdapter, Q, expect);
     });
 
     describe.skip('Project: branch operations', function () {

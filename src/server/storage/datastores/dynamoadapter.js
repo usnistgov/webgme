@@ -159,15 +159,23 @@ function DynamoAdapter(mainLogger, gmeConfig) {
                 TableName: rawProjectId,
                 AttributeDefinitions: [
                     {
-                        AttributeName: rawProjectId,
+                        AttributeName: 'ID',
                         AttributeType: 'S'
                     }
+                    //{
+                    //    AttributeName: 'time',
+                    //    AttributeType: 'N'
+                    //}
                 ],
                 KeySchema: [
                     {
-                        AttributeName: rawProjectId,
+                        AttributeName: 'ID',
                         KeyType: 'HASH'
                     }
+                    //{
+                    //    AttributeName: 'time',
+                    //    KeyType: 'RANGE'
+                    //}
                 ],
                 ProvisionedThroughput: {
                     ReadCapacityUnits: 10, //TODO: what should these be
@@ -179,7 +187,7 @@ function DynamoAdapter(mainLogger, gmeConfig) {
         logger.debug('createProject', projectId);
 
         if (self.client) {
-            self.client.createTable(params, function (err, data) {
+            self.client.createTable(params, function (err, result) {
                 if (err) {
                     if (err.name === 'ResourceInUseException') {
                         deferred.reject(new Error('Project already exists ' + projectId));

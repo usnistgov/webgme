@@ -2,7 +2,6 @@
 /*jshint node:true, newcap:false*/
 
 /**
- * @module Server:Storage:Redis
  * @author pmeijer / https://github.com/pmeijer
  */
 
@@ -20,7 +19,7 @@ var Q = require('q'),
  * @constructor
  * @private
  */
-function RedisProject(projectId, adapter) {
+function DynamoProject(projectId, adapter) {
     var logger = adapter.logger.fork(projectId),
         rawProjectId = projectId.replace('+', adapter.CONSTANTS.PROJECT_ID_DIV);
     this.projectId = projectId;
@@ -32,24 +31,33 @@ function RedisProject(projectId, adapter) {
     };
 
     this.loadObject = function (hash, callback) {
-        var deferred = Q.defer();
+        var deferred = Q.defer(),
+            params;
         if (typeof hash !== 'string') {
             deferred.reject(new Error('loadObject - given hash is not a string : ' + typeof hash));
         } else if (!REGEXP.HASH.test(hash)) {
             deferred.reject(new Error('loadObject - invalid hash :' + hash));
         } else {
-            Q.ninvoke(adapter.client, 'hget', projectId, hash)
-                .then(function (result) {
-                    // Bulk string reply: the value associated with field,
-                    // or nil when field is not present in the hash or key does not exist.
-                    if (result) {
-                        deferred.resolve(JSON.parse(result));
-                    } else {
-                        logger.error('object does not exist ' + hash);
-                        deferred.reject(new Error('object does not exist ' + hash));
+            params = {
+                TableName: rawProjectId,
+                Key: {
+                    ID: {
+                        S: hash
                     }
-                })
-                .catch(deferred.reject);
+                }
+            };
+            adapter.client.getItem(params, function (err, result) {
+                if (err) {
+                    deferred.reject(err);
+                    return;
+                }
+                if (result.Item && result.Item.data && result.Item.data.S) {
+                    deferred.resolve(JSON.parse(result.Item.data.S));
+                } else {
+                    logger.error('object does not exist ', hash, result);
+                    deferred.reject(new Error('object does not exist ' + hash));
+                }
+            });
         }
 
         return deferred.promise.nodeify(callback);
@@ -63,43 +71,57 @@ function RedisProject(projectId, adapter) {
         } else if (typeof object._id !== 'string' || !REGEXP.HASH.test(object._id)) {
             deferred.reject(new Error('object._id is not a valid hash.'));
         } else {
-            Q.ninvoke(adapter.client, 'hsetnx', projectId, object._id, JSON.stringify(object))
-                .then(function (result) {
-                    // 1 if field is a new field in the hash and value was set.
-                    // 0 if field already exists in the hash and no operation was performed.
-                    if (result === 0) {
-                        Q.ninvoke(adapter.client, 'hget', projectId, object._id)
-                            .then(function (objectStr) {
-                                var errMsg;
-                                if (CANON.stringify(object) === CANON.stringify(JSON.parse(objectStr))) {
-                                    logger.info('tried to insert existing hash - the two objects were equal',
-                                        object._id);
-                                    deferred.resolve();
-                                } else {
-                                    errMsg = 'tried to insert existing hash - the two objects were NOT equal ';
-                                    logger.error(errMsg, {
-                                        metadata: {
-                                            newObject: CANON.stringify(object),
-                                            oldObject: CANON.stringify(JSON.parse(objectStr))
-                                        }
-                                    });
-                                    deferred.reject(new Error(errMsg + object._id));
-                                }
-                            })
-                            .catch(deferred.reject);
-                    } else {
-                        if (object.type === 'commit') {
-                            Q.ninvoke(adapter.client, 'hset', projectId + adapter.CONSTANTS.COMMITS,
-                                object._id, object.time)
-                                .then(function () {
-                                    deferred.resolve();
-                                })
-                                .catch(deferred.reject);
-                        } else {
-                            deferred.resolve();
-                        }
+            params = {
+                TableName: rawProjectId,
+                Item: {
+                    ID: {
+                        S: object._id
+                    },
+                    data: {
+                        S: JSON.stringify(object)
                     }
-                });
+                },
+                ConditionExpression: 'attribute_not_exists(ID)',
+                ReturnValues: 'ALL_OLD'
+            };
+
+            //if (object.type === 'commit') {
+            //    params.Item.time = {
+            //        N: object.time.toString()
+            //    };
+            //} else {
+            //    params.Item.time = {
+            //        N: '9999999999999'
+            //    };
+            //}
+
+            adapter.client.putItem(params, function (err, result) {
+                if (err) {
+                    deferred.reject(err);
+                    return;
+                }
+                console.log(result);
+                if (result.Attributes && result.Attributes.data && result.Attributes.data.S) {
+                    var objectStr = result.Attributes.data.S,
+                        errMsg;
+                    if (CANON.stringify(object) === CANON.stringify(JSON.parse(objectStr))) {
+                        logger.info('tried to insert existing hash - the two objects were equal',
+                            object._id);
+                        deferred.resolve();
+                    } else {
+                        errMsg = 'tried to insert existing hash - the two objects were NOT equal ';
+                        logger.error(errMsg, {
+                            metadata: {
+                                newObject: CANON.stringify(object),
+                                oldObject: CANON.stringify(JSON.parse(objectStr))
+                            }
+                        });
+                        deferred.reject(new Error(errMsg + object._id));
+                    }
+                } else {
+                    deferred.resolve();
+                }
+            });
         }
 
         return deferred.promise.nodeify(callback);
@@ -178,47 +200,34 @@ function RedisProject(projectId, adapter) {
     };
 
     this.getCommits = function (before, number, callback) {
-        return Q.ninvoke(adapter.client, 'hgetall', projectId + adapter.CONSTANTS.COMMITS)
-            .then(function (result) {
-                var i,
-                    hashArray,
-                    timestamp,
-                    hashKeys = Object.keys(result || {}),
-                    commitsInfo = [];
-
-                // FIXME: This is not a very optimized implementation
-                for (i = 0; i < hashKeys.length; i += 1) {
-                    timestamp = parseInt(result[hashKeys[i]], 10);
-                    if (timestamp < before) {
-                        commitsInfo.push({
-                            hash: hashKeys[i],
-                            time: timestamp
-                        });
+        var deferred = Q.defer(),
+            params = {
+                TableName: rawProjectId,
+                KeyConditionExpression: 'ID = # and time < :before',
+                ExpressionAttributeValues: {
+                    ':before': {
+                        N: before.toString()
                     }
-                }
+                },
+                Select: 'SPECIFIC_ATTRIBUTES',
+                ProjectionExpression: 'data'
+            };
 
-                commitsInfo.sort(function (a, b) {
-                    return b.time - a.time;
-                });
+        adapter.client.query(params, function (err, result) {
+            if (err) {
+                deferred.reject(err);
+                return;
+            }
+            if (result.Item && result.Item.data && result.Item.data.S) {
+                deferred.resolve(JSON.parse(result.Item.data.S));
+            } else {
+                logger.error('object does not exist ', hash, result);
+                deferred.reject(new Error('object does not exist ' + hash));
+            }
+        });
 
-                hashArray = commitsInfo.slice(0, number).map(function (commitInfo) {
-                    return commitInfo.hash;
-                });
-
-                if (hashArray.length > 0) {
-                    hashArray.unshift(projectId);
-                    return Q.ninvoke(adapter.client, 'hmget', hashArray);
-                } else {
-                    return [];
-                }
-            })
-            .then(function (commitObjects) {
-                return commitObjects.map(function (commitObject) {
-                    return JSON.parse(commitObject);
-                });
-            })
-            .nodeify(callback);
+        return deferred.promise.nodeify(callback);
     };
 }
 
-module.exports = RedisProject;
+module.exports = DynamoProject;
