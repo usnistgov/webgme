@@ -15,7 +15,7 @@ describe.skip('Neo4jAdapter', function () {
         adapterTests = require('./testgenerators'),
         logger = testFixture.logger.fork('Neo4jAdapter');
 
-    describe('open/close Database', function () {
+    describe.skip('open/close Database', function () {
         adapterTests.genOpenCloseDatabase(Neo4jAdapter, logger, gmeConfig, Q, expect);
     });
 
@@ -25,8 +25,7 @@ describe.skip('Neo4jAdapter', function () {
         before(function (done) {
             adapter.openDatabase()
                 .then(function () {
-                    return Q.ninvoke(adapter.client, 'deleteNodesWithLabelsAndProperties',
-                        [adapter.CONSTANTS.PROJECT_LABEL], {});
+                    return Q.ninvoke(adapter.client, 'cypherQuery', 'MATCH (n) DELETE n');
                 })
                 .nodeify(done);
         });
@@ -42,13 +41,13 @@ describe.skip('Neo4jAdapter', function () {
         adapterTests.genDatabaseClosedErrors(new Neo4jAdapter(logger, gmeConfig), Q, expect);
     });
 
-    describe.skip('Project: insert/load Object and getCommits', function () {
+    describe('Project: insert/load Object and getCommits', function () {
         var adapter = new Neo4jAdapter(logger, gmeConfig);
 
         before(function (done) {
             adapter.openDatabase()
                 .then(function () {
-                    return Q.ninvoke(adapter.client, 'flushdb');
+                    return Q.ninvoke(adapter.client, 'cypherQuery', 'MATCH (n) DELETE n');
                 })
                 .nodeify(done);
         });

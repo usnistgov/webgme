@@ -31,11 +31,17 @@ function Neo4jAdapter(mainLogger, gmeConfig) {
     this.client = null;
     this.logger = logger;
     this.CONSTANTS = {
-        PROJECT_LABEL: 'project',
-        COMMITS: ':commits'
+        PROJECT_LABEL: 'Project',
+        PART_OF_PROJECT: 'PartOf',
+        DATA_OBJECT_ID: 'ID',
+        DATA_OBJECT_LABEL: 'DataObject',
+        COMMIT_OBJECT_LABEL: 'CommitObject',
+        BRANCH_LABEL: 'Branch'
     };
 
     function openDatabase(callback) {
+        var query,
+            client;
         connectionCnt += 1;
         logger.debug('openDatabase, connection counter:', connectionCnt);
 
@@ -44,8 +50,17 @@ function Neo4jAdapter(mainLogger, gmeConfig) {
                 logger.debug('Connecting to database...');
                 connectDeferred = Q.defer();
                 //self.client = new neo4j.GraphDatabase(gmeConfig.storage.database.options);
-                self.client = new neo4j('http://localhost:7474');
-                connectDeferred.resolve();
+                client = new neo4j('http://localhost:7474');
+                query = 'CREATE CONSTRAINT ON (project:' + self.CONSTANTS.PROJECT_LABEL + ') ' +
+                    'ASSERT project.projectId IS UNIQUE';
+                //TODO: Ensure that the constraint is not saved over and over.
+                Q.ninvoke(client, 'cypherQuery', query)
+                    .then(function () {
+                        self.client = client;
+                        disconnectDeferred = null;
+                        connectDeferred.resolve();
+                    })
+                    .catch(connectDeferred.reject);
             } else {
                 logger.debug('Count is 1 but neo4j is not null');
             }
@@ -109,17 +124,18 @@ function Neo4jAdapter(mainLogger, gmeConfig) {
     }
 
     function openProject(projectId, callback) {
-        var deferred = Q.defer();
+        var deferred = Q.defer(),
+            query;
 
         logger.debug('openProject', projectId);
 
         if (self.client) {
-            Q.ninvoke(self.client, 'readNodesWithLabelsAndProperties', self.CONSTANTS.PROJECT_LABEL, {
-                projectId: projectId
-            })
+            query = 'MATCH (project:' + self.CONSTANTS.PROJECT_LABEL + ' {projectId:"' + projectId + '"})' +
+                'RETURN project';
+            Q.ninvoke(self.client, 'cypherQuery', query)
                 .then(function (result) {
                     logger.debug('openProject, result', result);
-                    if (result.length > 0) {
+                    if (result.data.length > 0) {
                         deferred.resolve(new Neo4jProject(projectId, self));
                     } else {
                         deferred.reject(new Error('Project does not exist ' + projectId));
@@ -140,23 +156,17 @@ function Neo4jAdapter(mainLogger, gmeConfig) {
         logger.debug('createProject', projectId);
 
         if (self.client) {
-            // TODO: This should happen in one transaction..
-            Q.ninvoke(self.client, 'readNodesWithLabelsAndProperties', self.CONSTANTS.PROJECT_LABEL, {
-                projectId: projectId
-            })
+            Q.ninvoke(self.client, 'insertNode', {projectId: projectId}, self.CONSTANTS.PROJECT_LABEL)
                 .then(function (result) {
-                    if (result.length === 0) {
-                        return Q.ninvoke(self.client, 'insertNode', {projectId: projectId}, self.CONSTANTS.PROJECT_LABEL);
-                    }
+                    deferred.resolve(new Neo4jProject(projectId, self, result._id));
                 })
-                .then(function (result) {
-                    if (result) {
-                        deferred.resolve(new Neo4jProject(projectId, self));
-                    } else {
+                .catch(function (err) {
+                    if (err.message.indexOf('already exists with label Project and property') > -1) {
                         deferred.reject(new Error('Project already exists ' + projectId));
+                    } else {
+                        deferred.reject(err);
                     }
-                })
-                .catch(deferred.reject);
+                });
         } else {
             deferred.reject(new Error('Database is not open.'));
         }
