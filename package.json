@@ -48,6 +48,7 @@
     "mongodb": "=1.4.36",
     "multiparty": "=4.1.2",
     "nedb": "=1.1.4",
+    "node-neo4j": "=2.0.3",
     "passport": "=0.2.2",
     "passport-google": "=0.3.0",
     "process": "=0.11.2",

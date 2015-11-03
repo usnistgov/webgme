@@ -81,7 +81,7 @@ function DynamoAdapter(mainLogger, gmeConfig) {
 
         if (connectionCnt === 0) {
             if (self.client) {
-                logger.debug('Closing connection to redis...');
+                logger.debug('Closing connection to DynamoDB...');
                 self.client = null;
                 logger.debug('Closed?');
                 disconnectDeferred.resolve();
