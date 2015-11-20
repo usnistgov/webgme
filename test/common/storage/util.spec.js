@@ -64,14 +64,213 @@ describe('storage util', function () {
                 },
                 {
                     _id: '#1',
-                    parents: ['#1'],
+                    parents: [],
                     time: 1
                 }
             ];
 
             expect(StorageUtil.orderCommits(chain)).to.deep.equal(chain);
+        });
 
+        it('should succeed on single commit', function () {
+            var chain = [
+                {
+                    _id: '#3',
+                    parents: ['#2'],
+                    time: 3
+                }
+            ];
 
+            expect(StorageUtil.orderCommits(chain)).to.deep.equal(chain);
+        });
+
+        it('should succeed on single commit with no parents', function () {
+            var chain = [
+                {
+                    _id: '#3',
+                    parents: [],
+                    time: 3
+                }
+            ];
+
+            expect(StorageUtil.orderCommits(chain)).to.deep.equal(chain);
+        });
+
+        it('should return same order on simple chain when not ordered', function () {
+            /*   #3
+             *   #2
+             *   #1
+             */
+            var chain = [
+                    {
+                        _id: '#3',
+                        parents: ['#2'],
+                        time: 3
+                    },
+                    {
+                        _id: '#1',
+                        parents: [],
+                        time: 1
+                    },
+                    {
+                        _id: '#2',
+                        parents: ['#1'],
+                        time: 2
+                    }
+                ],
+                result = StorageUtil.orderCommits(chain);
+
+            expect(result[0].time).to.equal(3);
+            expect(result[1].time).to.equal(2);
+            expect(result[2].time).to.equal(1);
+        });
+
+        it('should succeed with two heads with common parent', function () {
+            /*
+             * #3
+             *  |   #2
+             *  \   /
+             *   #1
+             */
+            var chain = [
+                    {
+                        _id: '#2',
+                        parents: ['#1'],
+                        time: 2
+                    },
+                    {
+                        _id: '#3',
+                        parents: ['#1'],
+                        time: 3
+                    },
+                    {
+                        _id: '#1',
+                        parents: [],
+                        time: 1
+                    },
+
+                ],
+                result = StorageUtil.orderCommits(chain);
+
+            expect(result[0].time).to.equal(3);
+            expect(result[1].time).to.equal(2);
+            expect(result[2].time).to.equal(1);
+        });
+
+        it('should succeed with two parallel heads', function () {
+            /*
+             * #3
+             *  |   #2
+             *  |   #1
+             * #0    |
+             *  |    |
+             */
+            var chain = [
+                    {
+                        _id: '#0',
+                        parents: ['#00'],
+                        time: 0
+                    },
+                    {
+                        _id: '#3',
+                        parents: ['#0'],
+                        time: 3
+                    },
+                    {
+                        _id: '#2',
+                        parents: ['#1'],
+                        time: 2
+                    },
+                    {
+                        _id: '#1',
+                        parents: ['#11'],
+                        time: 1
+                    }
+                ],
+                result = StorageUtil.orderCommits(chain);
+
+            expect(result[0].time).to.equal(3);
+            expect(result[1].time).to.equal(2);
+            expect(result[2].time).to.equal(1);
+            expect(result[3].time).to.equal(0);
+        });
+
+        it('should succeed with two parallel heads 2', function () {
+            /*
+             * #3
+             *  |   #2
+             * #1    |
+             * #0    |
+             *  |    |
+             */
+            var chain = [
+                    {
+                        _id: '#2',
+                        parents: ['#22'],
+                        time: 2
+                    },
+                    {
+                        _id: '#0',
+                        parents: ['#00'],
+                        time: 0
+                    },
+                    {
+                        _id: '#3',
+                        parents: ['#1'],
+                        time: 3
+                    },
+                    {
+                        _id: '#1',
+                        parents: ['#0'],
+                        time: 1
+                    }
+                ],
+                result = StorageUtil.orderCommits(chain);
+
+            expect(result[0].time).to.equal(3);
+            expect(result[1].time).to.equal(2);
+            expect(result[2].time).to.equal(1);
+            expect(result[3].time).to.equal(0);
+        });
+
+        it.skip('should succeed with merged history', function () {
+            /*
+             *    #3
+             *   /  \
+             *  |   #2
+             * #1    |
+             *   \  /
+             *    #0
+             *     |
+             */
+            var chain = [
+                    {
+                        _id: '#2',
+                        parents: ['#0'],
+                        time: 2
+                    },
+                    {
+                        _id: '#0',
+                        parents: ['#00'],
+                        time: 0
+                    },
+                    {
+                        _id: '#3',
+                        parents: ['#1', '#2'],
+                        time: 3
+                    },
+                    {
+                        _id: '#1',
+                        parents: ['#0'],
+                        time: 1
+                    }
+                ],
+                result = StorageUtil.orderCommits(chain);
+
+            expect(result[0].time).to.equal(3);
+            expect(result[1].time).to.equal(2);
+            expect(result[2].time).to.equal(1);
+            expect(result[3].time).to.equal(0);
         });
     });
 });
