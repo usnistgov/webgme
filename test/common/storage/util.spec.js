@@ -48,4 +48,30 @@ describe('storage util', function () {
     it('should return undefined if project projectId is not given for getProjectNameFromProjectId', function () {
         expect(StorageUtil.getProjectNameFromProjectId()).to.equal(undefined);
     });
+
+    describe('orderCommits', function () {
+        it('should return same order on simple chain', function () {
+            var chain = [
+                {
+                    _id: '#3',
+                    parents: ['#2'],
+                    time: 3
+                },
+                {
+                    _id: '#2',
+                    parents: ['#1'],
+                    time: 2
+                },
+                {
+                    _id: '#1',
+                    parents: ['#1'],
+                    time: 1
+                }
+            ];
+
+            expect(StorageUtil.orderCommits(chain)).to.deep.equal(chain);
+
+
+        });
+    });
 });
