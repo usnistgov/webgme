@@ -196,7 +196,7 @@ define([
                                     }
                                 }
 
-                                deferred.reject(new Error('Job execution failed'));
+                                throw new Error('Job execution failed');
                             }
                         })
                         .catch(deferred.reject);

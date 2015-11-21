@@ -283,11 +283,15 @@ describe('Executor Plugin', function () {
 
             runPlugin.main(['node', filename, 'ExecutorPlugin', projectName, '-s', '/1', '-j', configFileName],
                 function (err, result) {
-                    expect(err).to.include('Job execution failed');
-                    expect(result.success).to.equal(false);
-                    expect(result.artifacts instanceof Array).to.equal(true);
-                    expect(result.artifacts.length).to.equal(4);
-                    done();
+                    try {
+                        expect(err.message).to.include('Job execution failed');
+                        expect(result.success).to.equal(false);
+                        expect(result.artifacts instanceof Array).to.equal(true);
+                        expect(result.artifacts.length).to.equal(4);
+                        done();
+                    } catch (err) {
+                        done(err);
+                    }
                 });
         });
     });
