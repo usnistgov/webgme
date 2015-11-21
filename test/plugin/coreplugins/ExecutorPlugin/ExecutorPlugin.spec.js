@@ -5,7 +5,7 @@
 
 var testFixture = require('../../../_globals.js');
 
-describe('ExecutorPlugin', function () {
+describe('Executor Plugin', function () {
     'use strict';
 
     var Q = testFixture.Q,
