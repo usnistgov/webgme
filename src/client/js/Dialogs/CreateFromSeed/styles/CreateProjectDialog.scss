@@ -1,0 +1,37 @@
+/*
+ * @author pmeijer / https://github.com/pmeijer
+ */
+
+div.modal-content {
+  div.modal-body {
+    form.form-horizontal {
+      span.selection {
+        .selector {
+          display: inline-block;
+          width: 90%;
+          padding: 0;
+        }
+        .asset-widget {
+          width: 100%;
+          height: 100%;
+        }
+        .btn-create {
+          margin-left: 0.2ex;
+        }
+        &.selection-blob {
+          padding: 0;
+        }
+      }
+      span.type-description {
+        display: inline-block;
+        width: 70%;
+        margin-bottom: 2ex;
+        margin-left: 0.5ex;
+        opacity: 0.90;
+        &.hidden {
+          display: none;
+        }
+      }
+    }
+  }
+}

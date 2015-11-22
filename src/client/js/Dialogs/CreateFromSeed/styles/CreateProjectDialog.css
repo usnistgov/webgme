@@ -1,0 +1,24 @@
+/*
+ * @author pmeijer / https://github.com/pmeijer
+ */
+div.modal-content div.modal-body form.form-horizontal span.selection .selector {
+  display: inline-block;
+  width: 90%;
+  padding: 0; }
+div.modal-content div.modal-body form.form-horizontal span.selection .asset-widget {
+  width: 100%;
+  height: 100%; }
+div.modal-content div.modal-body form.form-horizontal span.selection .btn-create {
+  margin-left: 0.2ex; }
+div.modal-content div.modal-body form.form-horizontal span.selection.selection-blob {
+  padding: 0; }
+div.modal-content div.modal-body form.form-horizontal span.type-description {
+  display: inline-block;
+  width: 70%;
+  margin-bottom: 2ex;
+  margin-left: 0.5ex;
+  opacity: 0.90; }
+  div.modal-content div.modal-body form.form-horizontal span.type-description.hidden {
+    display: none; }
+
+/*# sourceMappingURL=CreateProjectDialog.css.map */
