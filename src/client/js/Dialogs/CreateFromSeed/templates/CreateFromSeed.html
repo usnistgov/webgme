@@ -3,27 +3,52 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">×</button>
-                <h3>Create a new project from seed</h3>
+                <h3>New Project</h3>
             </div>
             <div class="modal-body">
-                <form class="form-horizontal" role="form">
-
-                    <select class="form-control seed-project">
-                        <optgroup class="file" label="Template File">
-
-                        </optgroup>
-                        <optgroup class="db" label="Existing Projects with a single branch">
-
-                        </optgroup>
-                    </select>
-
-                    <div class="alert alert-error"
-                         style="margin-top:5px; text-align: center;font-weight: bold; overflow: hidden; text-overflow: ellipsis">
-                    </div>
+                <form class="form-horizontal snap-shot" role="form">
+                    <h5>Create from existing snap-shot
+                        <i class="glyphicon glyphicon-info-sign toggle-info-btn snap-shot-info"/>
+                    </h5>
+                    <span class="type-description snap-shot-info hidden">Base new project on an existing snap-shot.
+                        It can either be a file-seed available on the server or a branch
+                        in one of the existing projects.
+                     </span>
+                    <span class="selection">
+                        <select class="form-control selector snap-shot pull-left">
+                            <optgroup class="file" label="File Seed"/>
+                            <optgroup class="db" label="Existing Projects with a single branch"/>
+                        </select>
+                    </span>
+                    <button class="btn btn-default btn-create btn-create-snap-shot pull-left">GO</button>
                 </form>
+                <form class="form-horizontal duplicate" role="form">
+                    <h5>Duplicate project</h5>
+                    <span class="type-description duplicate-info">New project will include the entire history
+                        of the duplicated project.
+                     </span>
+                    <span class="selection">
+                        <select class="form-control selector duplicate-project pull-left">
+                            <optgroup class="file" label="Template File"/>
+                            <optgroup class="db" label="Existing Projects with a single branch"/>
+                        </select>
+                        <button class="btn btn-default btn-create btn-duplicate pull-left">GO</button>
+                    </span>
+                </form>
+                <form class="form-horizontal blob">
+                    <h5>Import from file</h5>
+                    <span class="type-description blob-info">New project will include the entire history
+                        of the duplicated project.
+                     </span>
+                    <span class="selection selection-blob">
+
+                    </span>
+                </form>
+                <div class="alert alert-error"
+                     style="margin-top:5px; text-align: center;font-weight: bold; overflow: hidden; text-overflow: ellipsis">
+                </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-primary btn-create">Create</button>
                 <button class="btn btn-default" data-dismiss="modal">Cancel</button>
             </div>
         </div>

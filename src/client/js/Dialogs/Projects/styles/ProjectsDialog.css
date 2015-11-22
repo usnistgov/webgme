@@ -26,10 +26,25 @@
   .projects-dialog .modal-body table.table.table-projects thead th {
     text-align: left;
     cursor: pointer; }
-    .projects-dialog .modal-body table.table.table-projects thead th.reverse-order {
-      text-decoration: underline; }
-    .projects-dialog .modal-body table.table.table-projects thead th.in-order {
-      text-decoration: underline; }
+    .projects-dialog .modal-body table.table.table-projects thead th.reverse-order i.sorted.rev-order {
+      display: unset;
+      visibility: visible;
+      font-size: 10px;
+      padding-left: 1px; }
+    .projects-dialog .modal-body table.table.table-projects thead th.reverse-order i.sorted.in-order {
+      display: none; }
+    .projects-dialog .modal-body table.table.table-projects thead th.in-order i.sorted.in-order {
+      display: unset;
+      visibility: visible;
+      font-size: 10px;
+      padding-left: 1px; }
+    .projects-dialog .modal-body table.table.table-projects thead th.in-order i.sorted.rev-order {
+      display: none; }
+    .projects-dialog .modal-body table.table.table-projects thead th i.sorted {
+      visibility: hidden;
+      display: unset; }
+      .projects-dialog .modal-body table.table.table-projects thead th i.sorted.rev-order {
+        display: none; }
     .projects-dialog .modal-body table.table.table-projects thead th.title-icons {
       text-align: right;
       padding: 0; }
@@ -84,3 +99,5 @@ a.btn-env {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none; }
+
+/*# sourceMappingURL=ProjectsDialog.css.map */

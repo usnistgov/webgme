@@ -6,21 +6,30 @@
 
 define(['js/Loader/LoaderCircles',
     'common/storage/util',
-    'text!./templates/CreateFromSeed.html'
-], function (LoaderCircles, StorageUtil, createFromSeedDialogTemplate) {
+    'js/Controls/PropertyGrid/Widgets/AssetWidget',
+    'text!./templates/CreateFromSeed.html',
+
+    'css!./styles/CreateProjectDialog.css'
+], function (LoaderCircles, StorageUtil, AssetWidget, createFromSeedDialogTemplate) {
 
     'use strict';
 
     var CreateFromSeed;
 
-    CreateFromSeed = function (client, logger) {
+    CreateFromSeed = function (client, newProjectId, logger) {
         this._client = client;
         this._logger = logger;
 
+        this.newProjectId = newProjectId;
         this.seedProjectName = WebGMEGlobal.gmeConfig.seedProjects.defaultProject;
         this.seedProjectType = 'file';
         this.seedProjectBranch = 'master';
         this.seedCommitHash = null;
+        this.assetWidget = new AssetWidget({
+            propertyName: 'ImportFile',
+            propertyValue: ''
+        });
+        this.assetWidget.el.addClass('form-control selector pull-left');
 
         this._logger.debug('Create form seed ctor');
     };
@@ -42,12 +51,19 @@ define(['js/Loader/LoaderCircles',
     };
 
     CreateFromSeed.prototype._initDialog = function () {
-        var self = this;
+        var self = this,
+            blobEl;
 
         this._dialog = $(createFromSeedDialogTemplate);
+        blobEl = this._dialog.find('.selection-blob');
+        this._btnCreateBlob = $('<button class="btn btn-default btn-create btn-create-blob pull-left">GO</button>');
+        blobEl.append(this.assetWidget.el);
+        blobEl.append(this._btnCreateBlob);
 
-        this._btnCreate = this._dialog.find('.btn-create');
+        this._btnCreateSnapShot = this._dialog.find('.btn-create-snap-shot');
         this._btnCancel = this._dialog.find('.btn-cancel');
+
+        this._btnDuplicate = this._dialog.find('.btn-duplicate');
 
         this._option = this._dialog.find('select.seed-project');
         this._optGroupFile = this._dialog.find('optgroup.file');
@@ -62,8 +78,26 @@ define(['js/Loader/LoaderCircles',
 
         this._loader = new LoaderCircles({containerElement: this._dialog});
 
+        this._btnToggleInfo = this._dialog.find('.toggle-info-btn').on('click', function (event) {
+            var el = $(this),
+                infoEl;
+
+            if (el.hasClass('snap-shot-info')) {
+                infoEl = self._dialog.find('span.snap-shot-info');
+            }
+
+            if (infoEl.hasClass('hidden')) {
+                infoEl.removeClass('hidden');
+            } else {
+                infoEl.addClass('hidden');
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+
+        });
         // attach handlers
-        this._btnCreate.on('click', function (event) {
+        this._btnCreateSnapShot.on('click', function (event) {
             event.preventDefault();
             event.stopPropagation();
 
@@ -84,6 +118,30 @@ define(['js/Loader/LoaderCircles',
                     self.seedProjectName,
                     self.seedProjectBranch,
                     self.seedCommitHash);
+            }
+        });
+
+        this._btnCreateBlob.on('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            self._dialog.modal('hide');
+            if (self._fnCallback && self.assetWidget.propertyValue) {
+                self._fnCallback('blob',
+                    self.assetWidget.propertyValue,
+                    null,
+                    null);
+            }
+        });
+
+        this._btnDuplicate.on('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            self._dialog.modal('hide');
+            if (self._fnCallback) {
+                self._fnCallback('duplicate',
+                    self.assetWidget.propertyValue,
+                    null,
+                    null);
             }
         });
 

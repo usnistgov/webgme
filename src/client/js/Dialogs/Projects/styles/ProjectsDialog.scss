@@ -53,14 +53,45 @@
           text-align: left;
           cursor: pointer;
           &.reverse-order {
-            text-decoration: underline;
+            i.sorted {
+              &.rev-order {
+                display: unset;
+                visibility: visible;
+                font-size: 10px;
+                padding-left: 1px;
+              }
+              &.in-order {
+                display: none;
+              }
+            }
           }
           &.in-order {
-            text-decoration: underline;
+            i.sorted {
+              &.in-order {
+                display: unset;
+                visibility: visible;
+                font-size: 10px;
+                padding-left: 1px;
+              }
+              &.rev-order {
+                display: none;
+              }
+            }
+
+          }
+          i.sorted {
+            visibility: hidden;
+            display: unset;
+            &.rev-order {
+              display: none;
+            }
           }
           &.title-icons {
             text-align: right;
             padding: 0;
+          }
+          &:hover {
+
           }
         }
         tr.with-no-children {

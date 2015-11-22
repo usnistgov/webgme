@@ -119,10 +119,10 @@ define([
             if (val !== '' && self._projectIds.indexOf(val) === -1) {
                 self._btnNewProjectImport.disable(true);
                 self._dialog.modal('hide');
-                d = new CreateFromSeedDialog(self._client, self._logger.fork('CreateFromSeedDialog'));
-                d.show(function (seedType, seedName, seedBranchName, seedCommitHash) {
+                d = new CreateFromSeedDialog(self._client, val, self._logger.fork('CreateFromSeedDialog'));
+                d.show(function (seedType, seedName, seedBranchName, seedCommitHash, blobHash) {
                     if (seedType && seedName) {
-                        self._createProjectFromSeed(val, seedType, seedName, seedBranchName, seedCommitHash);
+                        self._createProjectFromSeed(val, seedType, seedName, seedBranchName, seedCommitHash, blobHash);
                     } else {
                         self._dialog.modal('show');
                     }
@@ -176,20 +176,6 @@ define([
                 });
 
 
-            }
-        }
-
-        function doCreateProjectFromFile() {
-            var val = self._txtNewProjectName.val(),
-                d;
-
-            if (val !== '' && self._projectIds.indexOf(val) === -1) {
-                self._btnNewProjectImport.disable(true);
-                self._dialog.modal('hide');
-                d = new ImportDialog();
-                d.show(function (fileContent) {
-                    self._createProjectFromFile(val, fileContent);
-                });
             }
         }
 
@@ -338,7 +324,6 @@ define([
             self._panelButtons.hide();
             self._panelCreateNew.show();
             self._txtNewProjectName.focus();
-            self._btnNewProjectImport.hide();
 
             event.stopPropagation();
             event.preventDefault();
@@ -349,21 +334,8 @@ define([
             self._panelButtons.show();
             self._panelCreateNew.hide();
             self._btnNewProjectCreate.show();
-            self._btnNewProjectImport.show();
 
             self._updateFilter();
-
-            event.stopPropagation();
-            event.preventDefault();
-        });
-
-        this._btnCreateFromFile.on('click', function (event) {
-            createType = CREATE_TYPE_IMPORT;
-            self._txtNewProjectName.val('');
-            self._panelButtons.hide();
-            self._panelCreateNew.show();
-            self._txtNewProjectName.focus();
-            self._btnNewProjectCreate.hide();
 
             event.stopPropagation();
             event.preventDefault();
@@ -393,22 +365,14 @@ define([
             if (isValidProjectName(val, projectId) === false) {
                 self._panelCreateNew.addClass('has-error');
                 self._btnNewProjectCreate.disable(true);
-                self._btnNewProjectImport.disable(true);
             } else {
                 self._panelCreateNew.removeClass('has-error');
                 self._btnNewProjectCreate.disable(false);
-                self._btnNewProjectImport.disable(false);
             }
         });
 
         this._btnNewProjectCreate.on('click', function (event) {
             doCreateProject();
-            event.stopPropagation();
-            event.preventDefault();
-        });
-
-        this._btnNewProjectImport.on('click', function (event) {
-            doCreateProjectFromFile();
             event.stopPropagation();
             event.preventDefault();
         });
@@ -648,33 +612,13 @@ define([
         }
     };
 
-    ProjectsDialog.prototype._createProjectFromFile = function (projectName, jsonContent) {
-        var self = this,
-            loader = new LoaderCircles({containerElement: $('body')});
-
-        loader.start();
-
-        self._client.createProjectFromFile(projectName, null, jsonContent, self._ownerId,
-            function (err, projectId, branchName) {
-                if (err) {
-                    self._logger.error('CANNOT CREATE NEW PROJECT FROM FILE: ', err);
-                    loader.stop();
-                } else {
-                    self._logger.debug('CREATE NEW PROJECT FROM FILE FINISHED SUCCESSFULLY');
-                    self._client.selectProject(projectId, branchName, function (err) {
-                        if (err) {
-                            self._logger.error('CANNOT SELECT NEWLY CREATED PROJECT FROM FILE: ', err.message);
-                        } else {
-                            WebGMEGlobal.State.registerActiveObject(CONSTANTS.PROJECT_ROOT_ID);
-                        }
-                        loader.stop();
-                    });
-                }
-            }
-        );
-    };
-
-    ProjectsDialog.prototype._createProjectFromSeed = function (projectName, type, seedName, branchName, commitHash) {
+    ProjectsDialog.prototype._createProjectFromSeed = function (
+        projectName,
+        type,
+        seedName,
+        branchName,
+        commitHash
+    ) {
         var self = this,
             parameters = {
                 type: type,
