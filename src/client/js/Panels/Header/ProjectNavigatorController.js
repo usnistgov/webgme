@@ -94,8 +94,12 @@ define([
         };
 
         if (self.gmeClient) {
-            manageProjects = newProject = function (/*data*/) {
+            manageProjects = function (/*data*/) {
                 var pd = new ProjectsDialog(self.gmeClient);
+                pd.show();
+            };
+            newProject = function () {
+                var pd = new ProjectsDialog(self.gmeClient, true);
                 pd.show();
             };
             self.userId = self.gmeClient.getUserId();
@@ -127,13 +131,6 @@ define([
                         id: 'newProject',
                         label: 'New project ...',
                         iconClass: 'glyphicon glyphicon-plus',
-                        action: newProject,
-                        actionData: {}
-                    },
-                    {
-                        id: 'importProject',
-                        label: 'Import project ...',
-                        iconClass: 'glyphicon glyphicon-import',
                         action: newProject,
                         actionData: {}
                     }

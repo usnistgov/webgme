@@ -12,7 +12,6 @@ define([
     'js/Constants',
     'js/Loader/LoaderCircles',
     'js/Utils/GMEConcepts',
-    'js/Dialogs/Import/ImportDialog',
     'js/Dialogs/CreateFromSeed/CreateFromSeedDialog',
     'common/storage/util',
     'js/util',
@@ -23,15 +22,13 @@ define([
 
     'css!./styles/ProjectsDialog.css'
 
-], function (ng, Logger, CONSTANTS, LoaderCircles, GMEConcepts, ImportDialog, CreateFromSeedDialog, StorageUtil,
+], function (ng, Logger, CONSTANTS, LoaderCircles, GMEConcepts, CreateFromSeedDialog, StorageUtil,
              clientUtil, projectsDialogTemplate, ConfirmDialog, DeleteDialogTemplate) {
 
     'use strict';
 
     var ProjectsDialog,
         DATA_PROJECT = 'DATA_PROJECT',
-        CREATE_TYPE_EMPTY = 'create_empty',
-        CREATE_TYPE_IMPORT = 'create_import',
         TABLE_ROW_BASE = $('<tr class="project-row"></tr>'),
         ngConfirmDialog,
         rootScope;
@@ -47,7 +44,7 @@ define([
 
     });
 
-    ProjectsDialog = function (client) {
+    ProjectsDialog = function (client, createNew) {
         this._logger = Logger.create('gme:Dialogs:Projects:ProjectsDialog', WebGMEGlobal.gmeConfig.client.log);
 
         this._client = client;
@@ -55,7 +52,7 @@ define([
         this._projectList = {};
         this._filter = undefined;
         this._ownerId = null; // TODO get this from dropdown list
-
+        this._creatingNew = createNew;
         this._logger.debug('Created');
     };
 
@@ -66,7 +63,7 @@ define([
 
         this._dialog.modal('show');
 
-        this._dialog.on('hidden.bs.model', function () {
+        this._dialog.on('hidden.bs.modal', function () {
             self._dialog.remove();
             self._dialog.empty();
             self._dialog = undefined;
@@ -96,8 +93,7 @@ define([
 
     ProjectsDialog.prototype._initDialog = function () {
         var self = this,
-            selectedId,
-            createType;
+            selectedId;
 
         function openProject(projectId) {
             if (self._projectList[projectId].rights.read === true) {
@@ -319,22 +315,21 @@ define([
         });
 
         this._btnCreateNew.on('click', function (event) {
-            createType = CREATE_TYPE_EMPTY;
             self._txtNewProjectName.val('');
             self._panelButtons.hide();
             self._panelCreateNew.show();
             self._txtNewProjectName.focus();
+            self._creatingNew = true;
 
             event.stopPropagation();
             event.preventDefault();
         });
 
         this._btnNewProjectCancel.on('click', function (event) {
-            createType = undefined;
             self._panelButtons.show();
             self._panelCreateNew.hide();
             self._btnNewProjectCreate.show();
-
+            self._creatingNew = false;
             self._updateFilter();
 
             event.stopPropagation();
@@ -386,11 +381,7 @@ define([
 
 
             if (enterPressed && isValidProjectName(newProjectName, projectId)) {
-                if (createType === CREATE_TYPE_EMPTY) {
-                    doCreateProject(self._client);
-                } else if (createType === CREATE_TYPE_IMPORT) {
-                    doCreateProjectFromFile();
-                }
+                doCreateProject(self._client);
                 event.stopPropagation();
                 event.preventDefault();
             }
@@ -417,7 +408,8 @@ define([
         this._btnRefresh.find('i').css('opacity', '0');
 
         this._client.getProjects(params, function (err, projectList) {
-            var i;
+            var i,
+                newProjectVal;
             self._activeProject = self._client.getActiveProjectId();
             self._projectList = {};
             self._projectIds = [];
@@ -470,6 +462,18 @@ define([
             self._loader.stop();
             self._btnRefresh.find('i').css('opacity', '1');
             self._btnRefresh.disable(false);
+            if (self._creatingNew) {
+                newProjectVal = self._txtNewProjectName.val();
+                if (newProjectVal && newProjectVal.length > 0) {
+                    self._updateFilter([newProjectVal.toUpperCase()[0], newProjectVal.toUpperCase()[0]]);
+                }
+                self._panelButtons.hide();
+                self._panelCreateNew.show();
+
+                setTimeout(function () {
+                    self._txtNewProjectName.focus();
+                }, 500);
+            }
         });
     };
 
