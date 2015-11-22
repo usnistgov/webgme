@@ -57,7 +57,7 @@
               &.rev-order {
                 display: unset;
                 visibility: visible;
-                font-size: 10px;
+                font-size: 90%;
                 padding-left: 1px;
               }
               &.in-order {
@@ -70,7 +70,7 @@
               &.in-order {
                 display: unset;
                 visibility: visible;
-                font-size: 10px;
+                font-size: 90%;
                 padding-left: 1px;
               }
               &.rev-order {
@@ -171,6 +171,12 @@
           }
         }
       }
+    }
+  }
+
+  .modal-footer {
+    button.corner-button {
+      margin-top: 0.5ex;
     }
   }
 }

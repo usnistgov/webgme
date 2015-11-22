@@ -7,10 +7,11 @@
 define(['js/Loader/LoaderCircles',
     'common/storage/util',
     'js/Controls/PropertyGrid/Widgets/AssetWidget',
+    'blob/BlobClient',
     'text!./templates/CreateFromSeed.html',
 
     'css!./styles/CreateProjectDialog.css'
-], function (LoaderCircles, StorageUtil, AssetWidget, createFromSeedDialogTemplate) {
+], function (LoaderCircles, StorageUtil, AssetWidget, BlobClient, createFromSeedDialogTemplate) {
 
     'use strict';
 
@@ -19,6 +20,7 @@ define(['js/Loader/LoaderCircles',
     CreateFromSeed = function (client, newProjectId, logger) {
         this._client = client;
         this._logger = logger;
+        this.blobClient = new BlobClient();
 
         this.newProjectId = newProjectId;
         this.seedProjectName = WebGMEGlobal.gmeConfig.seedProjects.defaultProject;
@@ -51,39 +53,78 @@ define(['js/Loader/LoaderCircles',
     };
 
     CreateFromSeed.prototype._initDialog = function () {
-        var self = this,
-            blobEl;
+        var self = this;
 
         this._dialog = $(createFromSeedDialogTemplate);
-        blobEl = this._dialog.find('.selection-blob');
-        this._btnCreateBlob = $('<button class="btn btn-default btn-create btn-create-blob pull-left">GO</button>');
-        blobEl.append(this.assetWidget.el);
-        blobEl.append(this._btnCreateBlob);
+        this._dialog.find('.selection-blob').append(this.assetWidget.el);
 
+        // Forms
+        this._formSnapShot = this._dialog.find('form.snap-shot');
+        this._formDuplicate = this._dialog.find('form.duplicate');
+        this._formBlob = this._dialog.find('form.blob');
+
+        // Assign buttons
         this._btnCreateSnapShot = this._dialog.find('.btn-create-snap-shot');
-        this._btnCancel = this._dialog.find('.btn-cancel');
-
         this._btnDuplicate = this._dialog.find('.btn-duplicate');
+        this._btnCreateBlob = this._dialog.find('.btn-create-blob');
 
-        this._option = this._dialog.find('select.seed-project');
-        this._optGroupFile = this._dialog.find('optgroup.file');
-        this._optGroupDb = this._dialog.find('optgroup.db');
-
-        this._option.children().remove();
-
+        // Snap-shot selector
+        this._selectSnapShot = this._formSnapShot.find('select.snap-shot');
+        this._optGroupFile = this._selectSnapShot.find('optgroup.file');
+        this._optGroupDb = this._selectSnapShot.find('optgroup.db');
+        this._selectSnapShot.children().remove();
         this._optGroupFile.children().remove();
-        this._option.append(this._optGroupFile);
+        this._selectSnapShot.append(this._optGroupFile);
         this._optGroupDb.children().remove();
-        this._option.append(this._optGroupDb);
+        this._selectSnapShot.append(this._optGroupDb);
+        // Duplicate selector
+        this._selectDuplicate = this._formDuplicate.find('select.duplicate-project');
+        this._optGroupDuplicate = this._selectDuplicate.find('optgroup.project-id');
+        this._optGroupDuplicate.children().remove();
+        this._selectDuplicate.append(this._optGroupDuplicate);
+
+        // Tab toggling
+        this._dialog.find('li.tab').on('click', function () {
+            var tabEl = $(this);
+            self._formSnapShot.removeClass('active');
+            self._formDuplicate.removeClass('active');
+            self._formBlob.removeClass('active');
+            self._btnCreateSnapShot.removeClass('active');
+            self._btnDuplicate.removeClass('active');
+            self._btnCreateBlob.removeClass('active');
+
+            if (tabEl.hasClass('snap-shot')) {
+                self._formSnapShot.addClass('active');
+                self._btnCreateSnapShot.addClass('active');
+            } else if (tabEl.hasClass('duplicate')) {
+                self._formDuplicate.addClass('active');
+                self._btnDuplicate.addClass('active');
+            } else if (tabEl.hasClass('blob')) {
+                self._formBlob.addClass('active');
+                self._btnCreateBlob.addClass('active');
+            } else {
+                return;
+            }
+        });
 
         this._loader = new LoaderCircles({containerElement: this._dialog});
 
-        this._btnToggleInfo = this._dialog.find('.toggle-info-btn').on('click', function (event) {
+        this._btnCancel = this._dialog.find('.btn-cancel');
+
+        this._dialog.find('.toggle-info-btn').on('click', function (event) {
             var el = $(this),
                 infoEl;
+            event.preventDefault();
+            event.stopPropagation();
 
             if (el.hasClass('snap-shot-info')) {
                 infoEl = self._dialog.find('span.snap-shot-info');
+            } else if (el.hasClass('duplicate-info')) {
+                infoEl = self._dialog.find('span.duplicate-info');
+            } else if (el.hasClass('blob-info')) {
+                infoEl = self._dialog.find('span.blob-info');
+            } else {
+                return;
             }
 
             if (infoEl.hasClass('hidden')) {
@@ -91,10 +132,6 @@ define(['js/Loader/LoaderCircles',
             } else {
                 infoEl.addClass('hidden');
             }
-
-            event.preventDefault();
-            event.stopPropagation();
-
         });
         // attach handlers
         this._btnCreateSnapShot.on('click', function (event) {
@@ -104,14 +141,14 @@ define(['js/Loader/LoaderCircles',
             self._dialog.modal('hide');
 
             if (self._fnCallback) {
-                self._logger.debug(self._option.val());
-                self.seedProjectType = self._option.val().slice(0, self._option.val().indexOf(':'));
-                self.seedProjectName = self._option.val().slice(self._option.val().indexOf(':') + 1);
+                self._logger.debug(self._selectSnapShot.val());
+                self.seedProjectType = self._selectSnapShot.val().slice(0, self._selectSnapShot.val().indexOf(':'));
+                self.seedProjectName = self._selectSnapShot.val().slice(self._selectSnapShot.val().indexOf(':') + 1);
 
                 if (self.seedProjectType === 'db') {
-                    self.seedProjectName = self._option.val().slice(self._option.val().indexOf(':') + 1,
-                        self._option.val().indexOf('#'));
-                    self.seedCommitHash = self._option.val().slice(self._option.val().indexOf('#'));
+                    self.seedProjectName = self._selectSnapShot.val().slice(self._selectSnapShot.val().indexOf(':') + 1,
+                        self._selectSnapShot.val().indexOf('#'));
+                    self.seedCommitHash = self._selectSnapShot.val().slice(self._selectSnapShot.val().indexOf('#'));
                 }
 
                 self._fnCallback(self.seedProjectType,
@@ -133,16 +170,40 @@ define(['js/Loader/LoaderCircles',
             }
         });
 
+        this._btnCreateBlob.disable(true);
+
+        this.assetWidget.onFinishChange(function (data) {
+            self._btnCreateBlob.disable(true);
+
+            if (data.newValue) {
+                self.blobClient.getMetadata(data.newValue, function (err, metadata) {
+                    if (err) {
+                        self._logger.error(err);
+                        return;
+                    }
+
+                    // TODO: Support exported zip file too.
+                    if (metadata.mime === 'application/json') {
+                        self._btnCreateBlob.disable(false);
+                    } else {
+                        //TODO: Better feedback here.
+                        alert('Uploaded file must be a json file (from Export branch)');
+                    }
+                });
+            }
+        });
+
         this._btnDuplicate.on('click', function (event) {
             event.preventDefault();
             event.stopPropagation();
-            self._dialog.modal('hide');
-            if (self._fnCallback) {
-                self._fnCallback('duplicate',
-                    self.assetWidget.propertyValue,
-                    null,
-                    null);
-            }
+            self._logger.debug('Duplicate not yet supported', self._selectDuplicate.val);
+            //self._dialog.modal('hide');
+            //if (self._fnCallback) {
+            //    self._fnCallback('duplicate',
+            //        self.assetWidget.propertyValue,
+            //        null,
+            //        null);
+            //}
         });
 
         // get seed project list
@@ -172,6 +233,12 @@ define(['js/Loader/LoaderCircles',
             for (i = 0; i < projectList.length; i += 1) {
                 projectId = projectList[i]._id;
                 displayedProjectName = StorageUtil.getProjectDisplayedNameFromProjectId(projectId);
+                self._optGroupDuplicate.append($('<option>', {
+                        text: displayedProjectName,
+                        value: projectId
+                    }
+                ));
+
                 if (Object.keys(projectList[i].branches).length === 1) {
                     branchId = Object.keys(projectList[i].branches)[0];
                     self._optGroupDb.append($('<option>', {
@@ -189,7 +256,7 @@ define(['js/Loader/LoaderCircles',
                             label: displayedProjectName
                         }
                     );
-                    self._option.append(projectGroup);
+                    self._selectSnapShot.append(projectGroup);
 
                     for (branchId in projectList[i].branches) {
                         if (projectList[i].branches.hasOwnProperty(branchId)) {
@@ -217,7 +284,7 @@ define(['js/Loader/LoaderCircles',
             }
 
             if (defaultOption) {
-                self._option.val(defaultOption);
+                self._selectSnapShot.val(defaultOption);
             }
             self._loader.stop();
         });

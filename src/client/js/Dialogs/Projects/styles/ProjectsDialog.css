@@ -29,14 +29,14 @@
     .projects-dialog .modal-body table.table.table-projects thead th.reverse-order i.sorted.rev-order {
       display: unset;
       visibility: visible;
-      font-size: 10px;
+      font-size: 90%;
       padding-left: 1px; }
     .projects-dialog .modal-body table.table.table-projects thead th.reverse-order i.sorted.in-order {
       display: none; }
     .projects-dialog .modal-body table.table.table-projects thead th.in-order i.sorted.in-order {
       display: unset;
       visibility: visible;
-      font-size: 10px;
+      font-size: 90%;
       padding-left: 1px; }
     .projects-dialog .modal-body table.table.table-projects thead th.in-order i.sorted.rev-order {
       display: none; }
@@ -91,6 +91,8 @@
     .projects-dialog .modal-body table.table.table-projects tbody.project-list tr.project-row td.created {
       font-style: italic;
       color: grey; }
+.projects-dialog .modal-footer button.corner-button {
+  margin-top: 0.5ex; }
 
 .txt-project-name {
   width: 50%; }
