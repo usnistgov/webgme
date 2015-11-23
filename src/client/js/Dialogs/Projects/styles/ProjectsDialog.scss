@@ -1,4 +1,16 @@
 .projects-dialog {
+  .modal-header {
+    i.gme-icon {
+      background-image: url(images/gme-icon.png);
+      height: 28px;
+      width: 28px;
+      background-size: 28px 28px;
+      text-indent: 40px;
+      font-style: normal;
+      font-size: 28px;
+      display: block;
+    }
+  }
   .pre-body {
     padding: 15px 15px 0 15px;
 
@@ -52,6 +64,7 @@
         th {
           text-align: left;
           cursor: pointer;
+          border-bottom-width: 1px;
           &.reverse-order {
             i.sorted {
               &.rev-order {
@@ -133,6 +146,7 @@
 
           td {
             text-align: left;
+            border-top: none;
             &.name {
               color: #3160ab;
               span.open-link {
