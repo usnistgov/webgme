@@ -44,7 +44,7 @@ define([
 
     });
 
-    ProjectsDialog = function (client, createNew) {
+    ProjectsDialog = function (client, createNew, createType) {
         this._logger = Logger.create('gme:Dialogs:Projects:ProjectsDialog', WebGMEGlobal.gmeConfig.client.log);
 
         this._client = client;
@@ -53,6 +53,7 @@ define([
         this._filter = undefined;
         this._ownerId = null; // TODO get this from dropdown list
         this._creatingNew = createNew;
+        this._createType = createType || 'seed';
         this._logger.debug('Created');
     };
 
@@ -115,7 +116,10 @@ define([
             if (val !== '' && self._projectIds.indexOf(val) === -1) {
                 self._btnNewProjectImport.disable(true);
                 self._dialog.modal('hide');
-                d = new CreateFromSeedDialog(self._client, val, self._logger.fork('CreateFromSeedDialog'));
+
+                d = new CreateFromSeedDialog(self._client, val, self._createType,
+                    self._logger.fork('CreateFromSeedDialog'));
+
                 d.show(function (seedType, seedName, seedBranchName, seedCommitHash, blobHash) {
                     if (seedType && seedName) {
                         self._createProjectFromSeed(val, seedType, seedName, seedBranchName, seedCommitHash, blobHash);

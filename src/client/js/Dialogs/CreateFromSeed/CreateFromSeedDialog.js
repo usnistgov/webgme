@@ -17,7 +17,15 @@ define(['js/Loader/LoaderCircles',
 
     var CreateFromSeed;
 
-    CreateFromSeed = function (client, newProjectId, logger) {
+    /**
+     *
+     * @param client
+     * @param newProjectId
+     * @param {string} initialTab - 'seed', 'import'
+     * @param logger
+     * @constructor
+     */
+    CreateFromSeed = function (client, newProjectId, initialTab, logger) {
         this._client = client;
         this._logger = logger;
         this.blobClient = new BlobClient();
@@ -32,6 +40,7 @@ define(['js/Loader/LoaderCircles',
             propertyValue: ''
         });
         this.assetWidget.el.addClass('form-control selector pull-left');
+        this.initialTab = initialTab || 'seed';
 
         this._logger.debug('Create form seed ctor');
     };
@@ -54,6 +63,28 @@ define(['js/Loader/LoaderCircles',
 
     CreateFromSeed.prototype._initDialog = function () {
         var self = this;
+
+        function toggleActive(tabEl) {
+            self._formSnapShot.removeClass('active');
+            self._formDuplicate.removeClass('active');
+            self._formBlob.removeClass('active');
+            self._btnCreateSnapShot.removeClass('active');
+            self._btnDuplicate.removeClass('active');
+            self._btnCreateBlob.removeClass('active');
+
+            if (tabEl.hasClass('snap-shot')) {
+                self._formSnapShot.addClass('active');
+                self._btnCreateSnapShot.addClass('active');
+            } else if (tabEl.hasClass('duplicate')) {
+                self._formDuplicate.addClass('active');
+                self._btnDuplicate.addClass('active');
+            } else if (tabEl.hasClass('blob')) {
+                self._formBlob.addClass('active');
+                self._btnCreateBlob.addClass('active');
+            } else {
+                return;
+            }
+        }
 
         this._dialog = $(createFromSeedDialogTemplate);
         this._dialog.find('.selection-blob').append(this.assetWidget.el);
@@ -83,33 +114,21 @@ define(['js/Loader/LoaderCircles',
         this._optGroupDuplicate.children().remove();
         this._selectDuplicate.append(this._optGroupDuplicate);
 
-        // Tab toggling
-        this._dialog.find('li.tab').on('click', function () {
-            var tabEl = $(this);
-            self._formSnapShot.removeClass('active');
-            self._formDuplicate.removeClass('active');
-            self._formBlob.removeClass('active');
-            self._btnCreateSnapShot.removeClass('active');
-            self._btnDuplicate.removeClass('active');
-            self._btnCreateBlob.removeClass('active');
-
-            if (tabEl.hasClass('snap-shot')) {
-                self._formSnapShot.addClass('active');
-                self._btnCreateSnapShot.addClass('active');
-            } else if (tabEl.hasClass('duplicate')) {
-                self._formDuplicate.addClass('active');
-                self._btnDuplicate.addClass('active');
-            } else if (tabEl.hasClass('blob')) {
-                self._formBlob.addClass('active');
-                self._btnCreateBlob.addClass('active');
-            } else {
-                return;
-            }
-        });
-
         this._loader = new LoaderCircles({containerElement: this._dialog});
 
         this._btnCancel = this._dialog.find('.btn-cancel');
+
+        // Tab toggling
+        if (self.initialTab === 'import') {
+            toggleActive(this._dialog.find('li.blob').addClass('active'));
+        } else {
+            toggleActive(this._dialog.find('li.snap-shot').addClass('active'));
+        }
+
+        // attach handlers
+        this._dialog.find('li.tab').on('click', function () {
+            toggleActive($(this));
+        });
 
         this._dialog.find('.toggle-info-btn').on('click', function (event) {
             var el = $(this),
@@ -133,7 +152,7 @@ define(['js/Loader/LoaderCircles',
                 infoEl.addClass('hidden');
             }
         });
-        // attach handlers
+
         this._btnCreateSnapShot.on('click', function (event) {
             event.preventDefault();
             event.stopPropagation();
